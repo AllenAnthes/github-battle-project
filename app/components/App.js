@@ -9,7 +9,7 @@ import Home from './Home'
 import Popular from './Popular'
 import Battle from './Battle'
 import Results from './Results'
-import Nav from './Nav'
+import {Nav} from './Nav'
 
 
 class App extends React.Component {
@@ -31,4 +31,5 @@ class App extends React.Component {
     }
 }
 
-module.exports = App;
+
+export default App;

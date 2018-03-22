@@ -2,13 +2,11 @@ import React from 'react';
 import queryString from 'query-string'
 import PropTypes from 'prop-types'
 import Link from "react-router-dom/es/Link";
-
-import api from '../utils/api'
+import {battle} from '../utils/api'
 import PlayerPreview from './PlayerPreview'
 import Loading from './Loading'
 
-const Profile = (props) => {
-    const info = props.info;
+const Profile = ({info}) => {
     return (
         <PlayerPreview avatar={info.avatar_url} username={info.login}>
             <ul className={'space-list-items'}>
@@ -25,12 +23,12 @@ const Profile = (props) => {
 };
 
 
-const Player = (props) => {
+const Player = ({label, score, profile}) => {
     return (
         <div>
-            <h1 className={'header'}>{props.label}</h1>
-            <h3 style={{textAlign: 'center'}}>Score: {props.score}</h3>
-            <Profile info={props.profile}/>
+            <h1 className={'header'}>{label}</h1>
+            <h3 style={{textAlign: 'center'}}>Score: {score}</h3>
+            <Profile info={profile}/>
         </div>
     )
 };
@@ -44,42 +42,32 @@ Player.propTypes = {
 
 
 class Result extends React.Component {
-    constructor(props) {
-        super(props);
+    state = {
+        winner: null,
+        loser: null,
+        error: null,
+        loading: true
+    };
 
-        this.state = {
-            winner: null,
-            loser: null,
-            error: null,
-            loading: true
-        };
-
-    }
-
-    componentDidMount() {
-        const players = queryString.parse(this.props.location.search);
-        api.battle([
-            players.playerOneName,
-            players.playerTwoName
-        ]).then(function (results) {
-            if (results === null) {
-                return this.setState(function () {
-                    return {
-                        error: "Looks like there was an error.  Check that both users exist on Github",
-                        loading: false
-                    }
-                })
-            }
-
-            this.setState(function () {
-                return {
-                    error: null,
-                    winner: results[0],
-                    loser: results[1],
-                    loading: false
-                }
+    async componentDidMount() {
+        const {playerOneName, playerTwoName} = queryString.parse(this.props.location.search);
+        const players = await battle([
+            playerOneName,
+            playerTwoName
+        ]);
+        if (players === null) {
+            return this.setState({
+                error: "Looks like there was an error.  Check that both users exist on Github",
+                loading: false
             })
-        }.bind(this))
+        }
+        this.setState({
+            error: null,
+            winner: players[0],
+            loser: players[1],
+            loading: false
+        })
+
     }
 
     render() {
@@ -114,4 +102,4 @@ class Result extends React.Component {
     }
 }
 
-module.exports = Result;
+export default Result;

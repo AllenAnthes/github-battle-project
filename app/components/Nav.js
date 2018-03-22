@@ -1,7 +1,7 @@
 import React from 'react';
 import {NavLink} from 'react-router-dom'
 
-const Nav = () => {
+export const Nav = () => {
     return (
         <ul className={'nav'}>
             <li>
@@ -23,4 +23,3 @@ const Nav = () => {
     )
 };
 
-module.exports = Nav;

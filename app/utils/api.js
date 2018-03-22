@@ -1,38 +1,27 @@
-import axios from 'axios'
-
 const id = '777696b74b80406f5119';
 const sec = 'dc83ec05056b8eddd94a77d24360940104873123';
-const params = '?client_id=' + id + '&client_secret=' + sec;
+const params = `?client_id=${id}&client_secret=${sec}`;
 
-function getProfile(username) {
-    return axios.get('http://api.github.com/users/' + username + params)
-        .then((user) => {
-            return user.data;
-        });
+async function getProfile(username) {
+    const response = await fetch(`https://api.github.com/users/${username}${params}`);
+    return response.json();
 }
 
-function getRepos(username) {
-    return axios.get('http://api.github.com/users/' + username + '/repos' + params +
-        '&per_page=100')
+async function getRepos(username) {
+    const response = await fetch(`https://api.github.com/users/${username}/repos${params}&per_page=100`);
+    return response.json()
 }
 
 function getStarCount(repos) {
-    return repos.data.reduce((count, repo) => {
-        return count + repo.stargazers_count;
-    }, 0);
+    return repos.reduce((count, {stargazers_count}) => count + stargazers_count, 0);
 }
 
-function calculateScore(profile, repos) {
-    const followers = profile.followers;
-    const totalStars = getStarCount(repos);
-
-    return (followers * 3) + totalStars;
+function calculateScore({followers}, repos) {
+    return (followers * 3) + getStarCount(repos);
 }
 
 function sortPlayers(players) {
-    return players.sort(function(a,b) {
-        return b.score - a.score;
-    });
+    return players.sort((a, b) => b.score - a.score);
 }
 
 function handleError(error) {
@@ -40,33 +29,27 @@ function handleError(error) {
     return null;
 }
 
-function getUserData(player) {
-    return axios.all([
+async function getUserData(player) {
+    const [profile, repos] = await Promise.all([
         getProfile(player),
         getRepos(player)
-    ]).then((data) => {
-        const profile = data[0];
-        const repos = data[1];
-
-        return {
-            profile: profile,
-            score: calculateScore(profile, repos)
-        }
-    })
+    ]);
+    return {profile, score: calculateScore(profile, repos)};
 }
 
-module.exports = {
+export async function battle(players) {
+    const results = await Promise.all(players.map(getUserData))
+        .catch(handleError);
+    return results === null
+        ? results
+        : sortPlayers(results);
+}
 
-    battle: (players) => {
-        return axios.all(players.map(getUserData))
-            .then(sortPlayers)
-            .catch(handleError)
-    },
-
-
-    fetchPopularRepos: language => {
-        let encodedURI = window.encodeURI('https://api.github.com/search/repositories?q=stars:>1+language:' +
-            language + '&sort=stars&order=desc&type=Repositories');
-        return axios.get(encodedURI).then((response) => (response.data.items))
-    }
-};
+export async function fetchPopularRepos(language) {
+    const encodedURI = window.encodeURI(`https://api.github.com/search/repositories?q=stars:>1+language:${language}
+        &sort=stars&order=desc&type=Repositories`);
+    const response = await fetch(encodedURI)
+        .catch(handleError);
+    const repos = await response.json();
+    return repos.items;
+}
